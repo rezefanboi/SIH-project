@@ -332,7 +332,7 @@ document.getElementById('bookingForm').addEventListener('submit', async (e) => {
     // offline: queue it, mark pending, still show as saved locally
     pendingQueue.push(payload);
     localStorage.setItem('vbr_pending', JSON.stringify(pendingQueue));
-    msg.textContent = 'No connection — saved locally as pending. It will sync automatically.';
+    msg.textContent = 'Saved the given data. It will sync automatically in the background.';
     msg.className = 'msg ok';
     document.getElementById('bookingForm').reset();
     checkConn();
