@@ -347,17 +347,25 @@ async function loadRegister() {
   try {
     const r = await fetch(API + '/bookings');
     allBookings = await r.json();
-    renderRegister();
   } catch (e) {
-    body.innerHTML = '<div class="empty">Could not reach the server. Showing locally queued entries only.</div>';
+    // If offline, we just use the last known allBookings + pendingQueue
+    if (!allBookings) allBookings = [];
   }
+  renderRegister();
 }
 
 function renderRegister() {
   const body = document.getElementById('registerBody');
   const q = document.getElementById('searchBox').value.toLowerCase();
   const statusF = document.getElementById('statusFilter').value;
-  let rows = allBookings.filter(b => {
+  
+  const syncedRefs = new Set(allBookings.map(b => b.client_ref).filter(Boolean));
+  const pendingToShow = pendingQueue.filter(p => !syncedRefs.has(p.client_ref)).map(p => ({
+    ...p, booking_id: '(pending)', status: 'pending', km_used: null
+  }));
+  const combined = [...pendingToShow, ...allBookings];
+
+  let rows = combined.filter(b => {
     const matchQ = !q || [b.vehicle_no,b.requested_by,b.department,b.purpose].join(' ').toLowerCase().includes(q);
     const matchS = !statusF || b.status === statusF;
     return matchQ && matchS;
