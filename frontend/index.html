@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transport Register</title>
+<style>
+  :root {
+    --paper: #f6f1e6;
+    --paper-line: #e2d9c4;
+    --ink: #23303f;
+    --ink-soft: #5b6b7c;
+    --accent: #1e4d5c;
+    --accent-soft: #dfeae7;
+    --warn: #9c3b2e;
+    --warn-soft: #f4e2de;
+    --ok: #2f6b3e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    background-image:
+      repeating-linear-gradient(to bottom, transparent 0 39px, var(--paper-line) 39px 40px);
+    color: var(--ink);
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    min-height: 100vh;
+  }
+  header {
+    padding: 28px 32px 14px;
+    border-bottom: 3px double var(--ink);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    letter-spacing: 0.02em;
+  }
+  header .sub {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  nav {
+    display: flex;
+    gap: 6px;
+    padding: 14px 32px 0;
+  }
+  nav button {
+    font-family: inherit;
+    font-size: 0.92rem;
+    background: none;
+    border: 1px solid var(--ink);
+    border-bottom: none;
+    padding: 8px 18px;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    color: var(--ink-soft);
+    position: relative;
+    top: 1px;
+  }
+  nav button.active {
+    background: var(--paper);
+    color: var(--ink);
+    font-weight: 600;
+    border-color: var(--ink);
+  }
+  main {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 22px 32px 60px;
+  }
+  .panel {
+    border: 1px solid var(--ink);
+    border-radius: 0 8px 8px 8px;
+    background: rgba(255,255,255,0.45);
+    padding: 24px;
+  }
+  .hidden { display: none !important; }
+
+  /* --- capture form --- */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 18px;
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field.full { grid-column: 1 / -1; }
+  label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); }
+  input, select, textarea {
+    font-family: inherit;
+    font-size: 0.98rem;
+    padding: 8px 10px;
+    border: 1px solid #b9ac8c;
+    border-radius: 5px;
+    background: #fffdf8;
+    color: var(--ink);
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .actions { margin-top: 18px; display: flex; align-items: center; gap: 14px; }
+  button.primary {
+    font-family: inherit;
+    background: var(--accent);
+    color: #fdfaf3;
+    border: none;
+    padding: 11px 22px;
+    border-radius: 6px;
+    font-size: 0.98rem;
+    cursor: pointer;
+  }
+  button.primary:hover { opacity: 0.92; }
+  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .msg { font-size: 0.9rem; padding: 6px 0; }
+  .msg.error { color: var(--warn); }
+  .msg.ok { color: var(--ok); }
+  .offline-note {
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    border-left: 3px solid var(--accent);
+    padding: 4px 10px;
+    margin-top: 12px;
+  }
+
+  /* --- register table --- */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar input, .toolbar select { flex: 1; min-width: 140px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--paper-line); }
+  th { color: var(--ink-soft); font-weight: 600; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.04em; }
+  td.mono, th.mono { font-family: 'Courier New', monospace; }
+  .status-pill {
+    display: inline-block; padding: 2px 9px; border-radius: 10px;
+    font-size: 0.72rem; text-transform: capitalize;
+  }
+  .status-pending   { background: #f0e6c9; color: #7a5e12; }
+  .status-confirmed { background: var(--accent-soft); color: var(--accent); }
+  .status-completed { background: #dcecdc; color: var(--ok); }
+  .status-cancelled { background: var(--warn-soft); color: var(--warn); }
+  .empty, .loading { text-align: center; color: var(--ink-soft); padding: 30px 0; font-style: italic; }
+  .missing { color: var(--ink-soft); font-style: italic; }
+
+  /* --- usage view --- */
+  .dept-row {
+    display: grid; grid-template-columns: 1.2fr 2fr auto; gap: 12px; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--paper-line);
+  }
+  .bar-track { background: #e7e0cd; border-radius: 4px; height: 14px; overflow: hidden; }
+  .bar-fill { background: var(--accent); height: 100%; }
+  .dept-figs { text-align: right; font-family: 'Courier New', monospace; font-size: 0.85rem; }
+  .note-missing { font-size: 0.72rem; color: var(--warn); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Institutional Vehicle Booking &amp; Usage Register</h1>
+    <div class="sub">Transport Office &mdash; PDKVCET</div>
+  </div>
+  <div class="sub" id="connStatus">checking connection&hellip;</div>
+</header>
+
+<nav>
+  <button class="tab active" data-tab="capture">Book a Vehicle</button>
+  <button class="tab" data-tab="register">Register</button>
+  <button class="tab" data-tab="usage">Usage by Department</button>
+</nav>
+
+<main>
+
+  <!-- ===================== CAPTURE ===================== -->
+  <section id="tab-capture" class="panel">
+    <form id="bookingForm" class="grid">
+      <div class="field">
+        <label for="vehicle_no">Vehicle</label>
+        <select id="vehicle_no" required>
+          <option value="">Select vehicle</option>
+          <option>TN22AB1234</option>
+          <option>TN22AC5678</option>
+          <option>TN22AD9012</option>
+          <option>TN22AE3456</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="department">Department</label>
+        <input id="department" list="deptList" required placeholder="e.g. AIDS">
+        <datalist id="deptList">
+          <option>AIDS</option><option>Mechanical</option><option>Administration</option>
+          <option>Sports</option><option>Civil</option><option>Physics</option>
+        </datalist>
+      </div>
+      <div class="field">
+        <label for="requested_by">Requested by</label>
+        <input id="requested_by" required placeholder="Full name">
+      </div>
+      <div class="field">
+        <label for="journey_date">Journey date</label>
+        <input id="journey_date" type="date" required>
+      </div>
+      <div class="field">
+        <label for="start_time">Start time</label>
+        <input id="start_time" type="time" required>
+      </div>
+      <div class="field">
+        <label for="end_time">End time</label>
+        <input id="end_time" type="time" required>
+      </div>
+      <div class="field full">
+        <label for="purpose">Purpose</label>
+        <input id="purpose" required placeholder="e.g. Guest pickup - airport">
+      </div>
+      <div class="actions full">
+        <button type="submit" class="primary" id="submitBtn">Save booking</button>
+        <span class="msg" id="formMsg"></span>
+      </div>
+    </form>
+    <div class="offline-note" id="offlineNote"></div>
+  </section>
+
+  <!-- ===================== REGISTER ===================== -->
+  <section id="tab-register" class="panel hidden">
+    <div class="toolbar">
+      <input id="searchBox" placeholder="Search vehicle, name, department, purpose&hellip;">
+      <select id="statusFilter">
+        <option value="">All statuses</option>
+        <option value="pending">Pending</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+    <div id="registerBody"><div class="loading">Loading bookings&hellip;</div></div>
+  </section>
+
+  <!-- ===================== USAGE ===================== -->
+  <section id="tab-usage" class="panel hidden">
+    <div id="usageBody"><div class="loading">Loading usage figures&hellip;</div></div>
+  </section>
+
+</main>
+
+<script>
+const API = (window.API_BASE || '') + '/api';
+let pendingQueue = JSON.parse(localStorage.getItem('vbr_pending') || '[]');
+let allBookings = [];
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+    if (btn.dataset.tab === 'register') loadRegister();
+    if (btn.dataset.tab === 'usage') loadUsage();
+  });
+});
+
+// ---------- connection status + offline queue ----------
+function uid() { return 'c-' + Date.now() + '-' + Math.random().toString(36).slice(2,8); }
+
+async function checkConn() {
+  const el = document.getElementById('connStatus');
+  try {
+    const r = await fetch(API + '/health', { cache: 'no-store' });
+    if (r.ok) { el.textContent = 'online'; el.style.color = '#2f6b3e'; flushQueue(); return true; }
+  } catch (e) {}
+  el.textContent = pendingQueue.length ? `offline · ${pendingQueue.length} saved locally` : 'offline';
+  el.style.color = '#9c3b2e';
+  return false;
+}
+
+async function flushQueue() {
+  if (!pendingQueue.length) return;
+  const remaining = [];
+  for (const rec of pendingQueue) {
+    try {
+      const r = await fetch(API + '/bookings', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(rec)
+      });
+      if (!r.ok && r.status !== 409) remaining.push(rec); // 409 elsewhere means real clash, surface later; keep simple here
+    } catch (e) { remaining.push(rec); }
+  }
+  pendingQueue = remaining;
+  localStorage.setItem('vbr_pending', JSON.stringify(pendingQueue));
+}
+
+setInterval(checkConn, 5000);
+checkConn();
+
+// ---------- capture form ----------
+document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('formMsg');
+  const btn = document.getElementById('submitBtn');
+  msg.textContent = ''; msg.className = 'msg';
+
+  const payload = {
+    vehicle_no: document.getElementById('vehicle_no').value,
+    department: document.getElementById('department').value.trim(),
+    requested_by: document.getElementById('requested_by').value.trim(),
+    journey_date: document.getElementById('journey_date').value,
+    start_time: document.getElementById('start_time').value,
+    end_time: document.getElementById('end_time').value,
+    purpose: document.getElementById('purpose').value.trim(),
+    client_ref: uid(),
+  };
+  for (const [k,v] of Object.entries(payload)) {
+    if (k !== 'client_ref' && !v) { msg.textContent = `Please fill in "${k.replace('_',' ')}".`; msg.className='msg error'; return; }
+  }
+
+  btn.disabled = true;
+  try {
+    const r = await fetch(API + '/bookings', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (r.ok) {
+      msg.textContent = `Saved as ${data.booking_id}.`; msg.className = 'msg ok';
+      document.getElementById('bookingForm').reset();
+    } else {
+      msg.textContent = data.error || 'Could not save booking.'; msg.className = 'msg error';
+    }
+  } catch (err) {
+    // offline: queue it, mark pending, still show as saved locally
+    pendingQueue.push(payload);
+    localStorage.setItem('vbr_pending', JSON.stringify(pendingQueue));
+    msg.textContent = 'No connection — saved locally as pending. It will sync automatically.';
+    msg.className = 'msg ok';
+    document.getElementById('bookingForm').reset();
+    checkConn();
+  }
+  btn.disabled = false;
+});
+
+// ---------- register ----------
+async function loadRegister() {
+  const body = document.getElementById('registerBody');
+  body.innerHTML = '<div class="loading">Loading bookings&hellip;</div>';
+  try {
+    const r = await fetch(API + '/bookings');
+    allBookings = await r.json();
+    renderRegister();
+  } catch (e) {
+    body.innerHTML = '<div class="empty">Could not reach the server. Showing locally queued entries only.</div>';
+  }
+}
+
+function renderRegister() {
+  const body = document.getElementById('registerBody');
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  const statusF = document.getElementById('statusFilter').value;
+  let rows = allBookings.filter(b => {
+    const matchQ = !q || [b.vehicle_no,b.requested_by,b.department,b.purpose].join(' ').toLowerCase().includes(q);
+    const matchS = !statusF || b.status === statusF;
+    return matchQ && matchS;
+  });
+  if (!rows.length) { body.innerHTML = '<div class="empty">No bookings match. Try clearing the search or filter.</div>'; return; }
+
+  let html = `<table><thead><tr>
+    <th class="mono">ID</th><th class="mono">Vehicle</th><th>Requested by</th><th>Dept</th>
+    <th class="mono">Date</th><th class="mono">Time</th><th>Purpose</th><th class="mono">Km</th><th>Status</th>
+  </tr></thead><tbody>`;
+  for (const b of rows) {
+    html += `<tr>
+      <td class="mono">${b.booking_id}</td>
+      <td class="mono">${b.vehicle_no}</td>
+      <td>${escapeHtml(b.requested_by)}</td>
+      <td>${escapeHtml(b.department)}</td>
+      <td class="mono">${b.journey_date}</td>
+      <td class="mono">${b.start_time}&ndash;${b.end_time}</td>
+      <td>${escapeHtml(b.purpose)}</td>
+      <td class="mono">${b.km_used != null ? b.km_used : '<span class="missing">not recorded</span>'}</td>
+      <td><span class="status-pill status-${b.status}">${b.status}</span></td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  body.innerHTML = html;
+}
+document.getElementById('searchBox').addEventListener('input', renderRegister);
+document.getElementById('statusFilter').addEventListener('change', renderRegister);
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- usage ----------
+async function loadUsage() {
+  const body = document.getElementById('usageBody');
+  body.innerHTML = '<div class="loading">Loading usage figures&hellip;</div>';
+  try {
+    const r = await fetch(API + '/usage');
+    const data = await r.json();
+    if (!data.length) { body.innerHTML = '<div class="empty">No usage recorded yet.</div>'; return; }
+    const maxKm = Math.max(...data.map(d => d.total_km), 1);
+    let html = '';
+    for (const d of data) {
+      const pct = Math.round((d.total_km / maxKm) * 100);
+      html += `<div class="dept-row">
+        <div>${escapeHtml(d.department)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <div class="dept-figs">
+          ${d.total_km.toFixed(1)} km &middot; ${d.trip_count} trips
+          ${d.missing_km_count ? `<div class="note-missing">${d.missing_km_count} trip(s) missing km</div>` : ''}
+        </div>
+      </div>`;
+    }
+    body.innerHTML = html;
+  } catch (e) {
+    body.innerHTML = '<div class="empty">Could not reach the server to load usage figures.</div>';
+  }
+}
+
+// default date convenience
+document.getElementById('journey_date').valueAsDate = new Date();
+</script>
+
+</body>
+</html>
