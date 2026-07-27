@@ -3,7 +3,12 @@ import time
 import subprocess
 import requests
 from fpdf import FPDF
-from playwright.sync_api import sync_playwright
+
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
 
 def wait_for_server(url, timeout=10):
     start = time.time()
@@ -18,6 +23,11 @@ def wait_for_server(url, timeout=10):
     return False
 
 def generate_screenshots():
+    if not PLAYWRIGHT_AVAILABLE:
+        print("\n[NOTE] Playwright is not installed on this environment.")
+        print("Skipping live screenshot generation. Will use existing screenshots if available.\n")
+        return
+
     print("Starting backend...")
     backend_env = os.environ.copy()
     backend_env["DB_PATH"] = "register.db"
@@ -82,60 +92,89 @@ def create_presentation():
     # Slide 1: Title
     pdf.add_page()
     pdf.set_font("helvetica", "B", 24)
-    pdf.cell(0, 80, "", ln=1)
-    pdf.cell(0, 10, "Institutional Vehicle Booking and Usage Register", 0, 1, "C")
+    pdf.cell(0, 80, "")
+    pdf.ln()
+    pdf.cell(0, 10, "Institutional Vehicle Booking and Usage Register", 0, 0, "C")
+    pdf.ln()
     pdf.set_font("helvetica", "", 16)
-    pdf.cell(0, 10, "A practical solution for transport management", 0, 1, "C")
-    pdf.cell(0, 10, "By Bharath E - PDKVCET - AIDS", 0, 1, "C")
+    pdf.cell(0, 10, "A practical solution for transport management", 0, 0, "C")
+    pdf.ln()
+    pdf.cell(0, 10, "By Bharath E - PDKVCET - AIDS", 0, 0, "C")
+    pdf.ln()
     
     # Slide 2: The Problem & Who is Affected
     pdf.add_page()
     pdf.set_font("helvetica", "B", 20)
-    pdf.cell(0, 20, "1. The Problem & Who is Affected", 0, 1)
+    pdf.cell(0, 20, "1. The Problem & Who is Affected")
+    pdf.ln()
     pdf.set_font("helvetica", "", 16)
     pdf.multi_cell(0, 10, "Problem:\n- Vehicles are booked via phone calls and a paper diary.\n- Double bookings are common and discovered too late.\n- No record of actual usage, making it impossible to attribute costs to departments.\n\nWho is affected:\n- The Transport Clerk (stressful double-bookings).\n- Departments (delayed or missing vehicles).\n- The Transport Officer (no data for cost tracking).")
     
     # Slide 3: Our Solution
     pdf.add_page()
     pdf.set_font("helvetica", "B", 20)
-    pdf.cell(0, 20, "2. Our Solution", 0, 1)
+    pdf.cell(0, 20, "2. Our Solution")
+    pdf.ln()
     pdf.set_font("helvetica", "", 16)
     pdf.multi_cell(0, 10, "A digital register that securely records bookings, automatically blocks overlapping requests, and instantly calculates distance usage per department.")
     
     # Slide 4: Capture Screen
     pdf.add_page()
     pdf.set_font("helvetica", "B", 20)
-    pdf.cell(0, 10, "3. Capture Booking", 0, 1)
+    pdf.cell(0, 10, "3. Capture Booking")
+    pdf.ln()
     if os.path.exists("capture.png"):
         pdf.image("capture.png", x=10, y=30, w=270)
+    else:
+        pdf.set_draw_color(180, 180, 180)
+        pdf.rect(10, 30, 270, 150, "D")
+        pdf.set_xy(10, 100)
+        pdf.set_font("helvetica", "I", 14)
+        pdf.cell(270, 10, "[Screenshot Placeholder: Capture Booking Screen]", 0, 0, "C")
         
     # Slide 5: Register View
     pdf.add_page()
     pdf.set_font("helvetica", "B", 20)
-    pdf.cell(0, 10, "4. Register View", 0, 1)
+    pdf.cell(0, 10, "4. Register View")
+    pdf.ln()
     if os.path.exists("register.png"):
         pdf.image("register.png", x=10, y=30, w=270)
+    else:
+        pdf.set_draw_color(180, 180, 180)
+        pdf.rect(10, 30, 270, 150, "D")
+        pdf.set_xy(10, 100)
+        pdf.set_font("helvetica", "I", 14)
+        pdf.cell(270, 10, "[Screenshot Placeholder: Register View Screen]", 0, 0, "C")
         
     # Slide 6: Usage Dashboard
     pdf.add_page()
     pdf.set_font("helvetica", "B", 20)
-    pdf.cell(0, 10, "5. Usage Dashboard & Derived Figures", 0, 1)
+    pdf.cell(0, 10, "5. Usage Dashboard & Derived Figures")
+    pdf.ln()
     pdf.set_font("helvetica", "", 12)
     pdf.multi_cell(0, 6, "Derived figures (Total KM and Trip Count) are calculated on the server. Bookings without KM yet are excluded from total distance but included in trip count.")
     if os.path.exists("usage.png"):
         pdf.image("usage.png", x=10, y=40, w=200)
+    else:
+        pdf.set_draw_color(180, 180, 180)
+        pdf.rect(10, 40, 270, 140, "D")
+        pdf.set_xy(10, 100)
+        pdf.set_font("helvetica", "I", 14)
+        pdf.cell(270, 10, "[Screenshot Placeholder: Usage Dashboard Screen]", 0, 0, "C")
         
     # Slide 7: What Works & Unfinished Features
     pdf.add_page()
     pdf.set_font("helvetica", "B", 20)
-    pdf.cell(0, 20, "6. What Works & Unfinished Features", 0, 1)
+    pdf.cell(0, 20, "6. What Works & Unfinished Features")
+    pdf.ln()
     pdf.set_font("helvetica", "", 16)
     pdf.multi_cell(0, 10, "What Works:\n- Full end-to-end booking capture and validation.\n- Server-side double booking prevention.\n- Real-time usage aggregation by department.\n- Offline mode (queues bookings and syncs when reconnected).\n\nUnfinished:\n- No authentication/login system.\n- No edit or cancel UI directly from the frontend.")
     
     # Slide 8: Next Improvements
     pdf.add_page()
     pdf.set_font("helvetica", "B", 20)
-    pdf.cell(0, 20, "7. Next Improvement", 0, 1)
+    pdf.cell(0, 20, "7. Next Improvement")
+    pdf.ln()
     pdf.set_font("helvetica", "", 16)
     pdf.multi_cell(0, 10, "Next Step: Add a vehicles table (make, capacity, fuel type) to calculate the actual financial cost per department, not just the distance traveled.")
     
