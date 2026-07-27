@@ -7,9 +7,12 @@ department is using each vehicle and how much.
 ## What's in here
 
 ```
-backend/       Flask + SQLite API (validation, double-booking check, usage aggregation)
-frontend/      Single-page HTML/CSS/JS app: capture screen, register, usage dashboard
-docker-compose.yml
+backend/                      Flask + SQLite API (validation, double-booking check, usage aggregation)
+frontend/                     Single-page HTML/CSS/JS app: capture screen, register, usage dashboard
+.github/workflows/main.yml    GitHub Actions CI workflow (Docker build and seed test)
+docker-compose.yml            Docker orchestration configuration
+gen_pdf.py                    Python automation script to generate the presentation
+presentation.pdf              Completed presentation (6-8 slides covering implementation details)
 ```
 
 ## Running it locally (no Docker)
@@ -81,11 +84,11 @@ matching the hand calculation exactly.
 The capture screen keeps working with no network: a submitted booking that
 can't reach the server is stored in the browser's local storage and marked
 as saved-locally; a status indicator in the header shows "offline · N saved
-locally". Once the connection returns, queued bookings are sent
-automatically. Each booking carries a `client_ref` generated on the device;
-the server treats a repeated `client_ref` as the same booking and returns
-the original record instead of creating a duplicate, so a retry after
-reconnecting never double-books.
+locally". 
+
+To ensure full clarity, **offline queued bookings are displayed immediately in the Register table** with `(pending)` as their ID and their status set to `pending`. They are fully searchable even while offline. 
+
+Once the connection returns, queued bookings are sent automatically. Each booking carries a `client_ref` generated on the device; the server treats a repeated `client_ref` as the same booking and returns the original record instead of creating a duplicate, so a retry after reconnecting never double-books.
 
 ## Known limitations / what's unfinished
 
